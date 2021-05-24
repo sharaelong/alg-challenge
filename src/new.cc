@@ -39,6 +39,8 @@ struct Graph {
 
         // Maybe required...?
         if (is_query) {}
+
+        printf("Graph entered\n");
     }
 
     bool is_neighbor(int u, int v) {
@@ -68,6 +70,8 @@ struct CandidateSet {
                 cs[query_vertex_id].push_back(data_vertex_id);
             }
         }
+
+        printf("candidateset entered\n");
     }
 };
 
