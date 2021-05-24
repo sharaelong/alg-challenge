@@ -10,7 +10,7 @@ struct Graph {
     vector<bool> embedded;
 
     Graph(const string& filename, bool _is_query = false) {
-        freopen(filename.c_str(), "r", stdin);
+        FILE* fp = freopen(filename.c_str(), "r", stdin);
 
         char type;
         int graph_id;
@@ -32,6 +32,8 @@ struct Graph {
                 adj[vertex_id2].push_back(vertex_id1);
             }
         }
+
+        fclose(fp);
 
         for (int i=0; i<V; ++i) {
             sort(adj[i].begin(), adj[i].end());
@@ -55,7 +57,7 @@ struct CandidateSet {
     vector<vector<int> > cs;
 
     CandidateSet(const string& filename) {
-        freopen(filename.c_str(), "r", stdin);
+        FILE* fp = freopen(filename.c_str(), "r", stdin);
 
         char type;
         scanf("%c %d\n", &type, &V);
@@ -70,6 +72,8 @@ struct CandidateSet {
                 cs[query_vertex_id].push_back(data_vertex_id);
             }
         }
+
+        fclose(fp);
 
         printf("candidateset entered\n");
     }
