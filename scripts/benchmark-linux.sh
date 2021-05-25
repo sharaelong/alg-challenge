@@ -8,6 +8,6 @@ do
     for kind in "${suffix[@]}"
     do
         printf "$data$kind: "
-        printf "$((`timeout $1 ../src/new "../data/${data}.igraph" "../query/${data}${kind}.igraph" "../candidate_set/${data}${kind}.cs" | wc -l` - 2))\n"
+        printf "$((`timeout $1 ../src/new "../data/${data}.igraph" "../query/${data}${kind}.igraph" "../candidate_set/${data}${kind}.cs" | wc -l`))\n"
     done
 done
