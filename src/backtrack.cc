@@ -32,11 +32,16 @@ void Backtrack::PrintMatch() {
 
 bool Backtrack::isValid(Vertex v) {
   if (candidate.size() > 1) {
-    for (size_t i = 0; i < candidate.size() - 1; i++) {
-      if (query->IsNeighbor(i, candidate.size()) != data->IsNeighbor(v, candidate.at(i))) return false;
+    bool is_valid = false;
+    for (size_t i = 0; i < candidate.size() - 1; ++i) {
+      if (query->IsNeighbor(matching_order.at(i), matching_order.at(candidate.size()))) {
+        if(!(is_valid = data->IsNeighbor(v, candidate.at(i)))) return false;
+      } 
     }
+    // std::cout << is_valid << std::endl;
+    return is_valid;
   }
-  return true;
+  else return true;
 }
 
 void Backtrack::BuildMatchingOrder() {
@@ -78,7 +83,9 @@ void Backtrack::BuildMatchingOrder() {
 }
 
 void Backtrack::CheckCandidateSpace() {
-  Vertex v, u = candidate.size();
+  // printf("%-4ld", candidate.size());
+  Vertex v, u = matching_order.at(candidate.size());
+
   for (size_t i = 0; i < cs->GetCandidateSize(u); i++) {
     v = cs->GetCandidate(u, i);
     if (isValid(v)) {
