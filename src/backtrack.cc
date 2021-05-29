@@ -12,42 +12,57 @@ Backtrack::Backtrack(const Graph *_data, const Graph *_query, const CandidateSet
   size_t query_num_vertices = query->GetNumVertices();
 
   matching_order.reserve(query_num_vertices);
-  candidate.reserve(query_num_vertices);
+  partial_embedding.reserve(query_num_vertices);
+  partial_embedding_idx.reserve(query_num_vertices);
+
+  is_matched.reserve(query_num_vertices);
+  is_embedded.reserve(data->GetNumVertices());
+
+  // initialize vectors to build a matching order
   for (size_t i = 0; i < query_num_vertices; ++i) {
     is_matched.push_back(false);
+    partial_embedding_idx.push_back(-1);
   }
 
   BuildMatchingOrder();
+
+  // reinitialize is_matched for embedding validation
+  for (size_t i = 0; i < query_num_vertices; ++i) {
+    is_matched[i] = false;
+  }
+  for (size_t i = 0; i < data->GetNumVertices(); ++i) {
+    is_embedded.push_back(false);
+  }
 }
 
 Backtrack::~Backtrack() {}
 
 void Backtrack::PrintMatch() {
   std::cout << "a ";
-  for (std::vector<Vertex>::const_iterator i = candidate.begin(); i != candidate.end(); ++i) {
-    std::cout << *i << ' ';
+  for (size_t i = 0; i < query->GetNumVertices(); ++i) {
+    std::cout << partial_embedding[partial_embedding_idx[i]] << ' ';
   }
   std::cout << std::endl;
 }
 
 bool Backtrack::isValid(Vertex v) {
-  if (candidate.size() > 1) {
-    bool is_valid = false;
-    for (size_t i = 0; i < candidate.size() - 1; ++i) {
-      if (query->IsNeighbor(matching_order.at(i), matching_order.at(candidate.size()))) {
-        if(!(is_valid = data->IsNeighbor(v, candidate.at(i)))) return false;
+  if (is_embedded[v]) return false;
+  size_t partial_embedding_size = partial_embedding.size();
+  Vertex query_vertex = matching_order[partial_embedding_size];
+  if (partial_embedding_size > 1) {
+    for (size_t i = query->GetNeighborStartOffset(query_vertex); i < query->GetNeighborEndOffset(query_vertex); ++i) {
+      if (is_matched[query->GetNeighbor(i)] && !data->IsNeighbor(v, partial_embedding[partial_embedding_idx[query->GetNeighbor(i)]])) {
+        return false;
       } 
     }
-    // std::cout << is_valid << std::endl;
-    return is_valid;
   }
-  else return true;
+  return true;
 }
 
 void Backtrack::BuildMatchingOrder() {
   float curr_val, min_val;
   size_t query_num_vertices = query->GetNumVertices();
-  size_t order_idx, min_idx = 0, max_val = 0;
+  size_t min_idx = 0, max_val = 0;
 
   for (size_t u = 0; u < query_num_vertices; ++u) {
     max_val = MAX(max_val, cs->GetCandidateSize(u));
@@ -57,44 +72,39 @@ void Backtrack::BuildMatchingOrder() {
   for (size_t u = 0; u < query_num_vertices; ++u) {
     curr_val = MIN(min_val, (float)cs->GetCandidateSize(u) / query->GetDegree(u));
     if (curr_val < min_val) {
-      if (is_matched.at(u)) continue;
+      if (is_matched[u]) continue;
       min_val = curr_val;
       min_idx = u;
     }
   }
-  is_matched.at(min_idx) = true;
+  is_matched[min_idx] = true;
   matching_order.push_back(min_idx);
-  
-  order_idx = 0;
-  while (order_idx < query_num_vertices) {
+  partial_embedding_idx[min_idx] = 0;
+  for (size_t i = 0; i < query_num_vertices; ++i) {
     for (size_t u = 0; u < query_num_vertices; ++u) {
-      if(!is_matched.at(u) && query->IsNeighbor(matching_order.at(order_idx), u)) {
-        is_matched.at(u) = true;
+      if(!is_matched[u] && query->IsNeighbor(matching_order[i], u)) {
+        is_matched[u] = true;
         matching_order.push_back(u);
+        partial_embedding_idx[u] = matching_order.size() - 1;
       }
     }
-    order_idx++;
   }
-  // std::cout << "m ";
-  // for (Vertex v: matching_order) {
-  //   std::cout << v << ' ';
-  // }
-  // std::cout << std::endl;
 }
 
 void Backtrack::CheckCandidateSpace() {
-  // printf("%-4ld", candidate.size());
-  Vertex v, u = matching_order.at(candidate.size());
+  Vertex v, u = matching_order[partial_embedding.size()];
 
   for (size_t i = 0; i < cs->GetCandidateSize(u); i++) {
     v = cs->GetCandidate(u, i);
     if (isValid(v)) {
-      candidate.push_back(v);
-      if (candidate.size() == query->GetNumVertices())
+      is_matched[u] = is_embedded[v] = true;
+      partial_embedding.push_back(v);
+      if (partial_embedding.size() == query->GetNumVertices())
         PrintMatch();
       else
         CheckCandidateSpace();
-      candidate.pop_back();
+      partial_embedding.pop_back();
+      is_matched[u] = is_embedded[v] = false;
     }
   }
 }

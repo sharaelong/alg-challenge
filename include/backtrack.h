@@ -28,9 +28,11 @@ class Backtrack {
     const Graph *query;
     const CandidateSet *cs;
 
-    std::vector<Vertex> candidate;
+    std::vector<size_t> partial_embedding_idx;
+    std::vector<Vertex> partial_embedding;
     std::vector<Vertex> matching_order;
     std::vector<bool>   is_matched;
+    std::vector<bool>   is_embedded;
 };
 
 #endif  // BACKTRACK_H_
