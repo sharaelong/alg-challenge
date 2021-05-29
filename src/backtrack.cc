@@ -56,7 +56,7 @@ bool Backtrack::isValid(Vertex v) {
   if (is_embedded[v]) return false;
   size_t partial_embedding_size = partial_embedding.size();
   Vertex query_vertex = matching_order[partial_embedding_size];
-  if (partial_embedding_size > 1) {
+  if (partial_embedding_size) {
     for (size_t i = query->GetNeighborStartOffset(query_vertex); i < query->GetNeighborEndOffset(query_vertex); ++i) {
       if (is_matched[query->GetNeighbor(i)] && !data->IsNeighbor(v, partial_embedding[partial_embedding_idx[query->GetNeighbor(i)]])) {
         return false;
