@@ -35,9 +35,10 @@ Backtrack::Backtrack(const Graph *_data, const Graph *_query, const CandidateSet
   }
 }
 
-Backtrack::~Backtrack() {}
-
-void Backtrack::PrintMatch() {
+/**
+ * @brief Prints the found embedding.
+ */
+void Backtrack::PrintEmbedding() {
   std::cout << "a ";
   for (size_t i = 0; i < query->GetNumVertices(); ++i) {
     std::cout << partial_embedding[partial_embedding_idx[i]] << ' ';
@@ -45,6 +46,12 @@ void Backtrack::PrintMatch() {
   std::cout << std::endl;
 }
 
+/**
+ * @brief Checks if the query vertex containing the given data vertex is a valid extendable candidate.
+ * 
+ * @param v data vertex to check
+ * @retval true if valid, false if not.
+ */
 bool Backtrack::isValid(Vertex v) {
   if (is_embedded[v]) return false;
   size_t partial_embedding_size = partial_embedding.size();
@@ -59,6 +66,9 @@ bool Backtrack::isValid(Vertex v) {
   return true;
 }
 
+/**
+ * @brief Builds a matching order of the query graph.
+ */
 void Backtrack::BuildMatchingOrder() {
   float curr_val, min_val;
   size_t query_num_vertices = query->GetNumVertices();
@@ -69,6 +79,7 @@ void Backtrack::BuildMatchingOrder() {
   }
 
   min_val = (float)max_val; // Initialize min_val with the greatest value possible
+
   for (size_t u = 0; u < query_num_vertices; ++u) {
     curr_val = MIN(min_val, (float)cs->GetCandidateSize(u) / query->GetDegree(u));
     if (curr_val < min_val) {
@@ -77,6 +88,8 @@ void Backtrack::BuildMatchingOrder() {
       min_idx = u;
     }
   }
+  
+  // might be improved
   is_matched[min_idx] = true;
   matching_order.push_back(min_idx);
   partial_embedding_idx[min_idx] = 0;
@@ -91,6 +104,10 @@ void Backtrack::BuildMatchingOrder() {
   }
 }
 
+/**
+ * @brief Is called recursively, building a partial embedding.
+ *        Prints embedding if a complete embedding is found. 
+ */
 void Backtrack::CheckCandidateSpace() {
   Vertex v, u = matching_order[partial_embedding.size()];
 
@@ -100,7 +117,7 @@ void Backtrack::CheckCandidateSpace() {
       is_matched[u] = is_embedded[v] = true;
       partial_embedding.push_back(v);
       if (partial_embedding.size() == query->GetNumVertices())
-        PrintMatch();
+        PrintEmbedding();
       else
         CheckCandidateSpace();
       partial_embedding.pop_back();

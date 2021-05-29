@@ -15,9 +15,8 @@
 class Backtrack {
   public:
     explicit Backtrack(const Graph *_data, const Graph *_query, const CandidateSet *_cs);
-    ~Backtrack();
 
-    void PrintMatch();
+    void PrintEmbedding();
     void BuildMatchingOrder();
     bool isValid(Vertex v);
     void CheckCandidateSpace();
