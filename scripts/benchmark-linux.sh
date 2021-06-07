@@ -7,8 +7,10 @@ for data in "${datas[@]}"
 do
     for kind in "${suffix[@]}"
     do
-        printf "$data$kind: "
-        printf "$((`timeout 10 ../build/main/_program "../data/${data}.igraph" "../query/${data}${kind}.igraph" "../candidate_set/${data}${kind}.cs" | wc -l`))\n"
+        printf "$data$kind \n"
+        # printf "$((`timeout 10 ../build/main/dev "../data/${data}.igraph" "../query/${data}${kind}.igraph" "../candidate_set/${data}${kind}.cs" | wc -l`))\n"
         printf "$((`timeout 10 ../build/main/program "../data/${data}.igraph" "../query/${data}${kind}.igraph" "../candidate_set/${data}${kind}.cs" | wc -l`))\n"
+        printf "$((`timeout 10 ../build/main/program_old "../data/${data}.igraph" "../query/${data}${kind}.igraph" "../candidate_set/${data}${kind}.cs" | wc -l`))\n"
+        echo "---------------"
     done
 done

@@ -1,2 +1,6 @@
-build
+build/*
+!build/main
+build/main/*
+!build/main/dev
+!build/main/program_old
 settings.json
