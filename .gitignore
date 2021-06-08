@@ -2,5 +2,6 @@ build/*
 !build/main
 build/main/*
 !build/main/dev
-!build/main/program_old
+!build/main/v2
+!build/main/program
 settings.json

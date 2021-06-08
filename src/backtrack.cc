@@ -69,62 +69,6 @@ bool Backtrack::isValid(Vertex v) {
   return true;
 }
 
-void Backtrack::GenerateRandomOrder() {
-  size_t query_num_vertices = query->GetNumVertices();
-  std::vector<std::vector<Vertex>> neighbors(query_num_vertices, std::vector<Vertex>());
-  Vertex first;
-  
-  for (size_t i = 0; i < query_num_vertices; ++i) is_matched[i] = false;
-  
-  first = matching_order[0];
-  matching_order.clear();
-  matching_order.push_back(first);
-  partial_embedding_idx[first] = 0;
-  is_matched[first] = true;
-
-  for (size_t i = 0; i < query_num_vertices; ++i) {
-    size_t curr_idx = matching_order[i];
-  
-    for (size_t u = query->GetNeighborStartOffset(curr_idx); u < query->GetNeighborEndOffset(curr_idx); ++u) {
-      Vertex v = query->GetNeighbor(u);
-      if(!is_matched[v]) neighbors[i].push_back(v);
-    }
-    std::random_shuffle(neighbors[i].begin(), neighbors[i].end());
-    for (Vertex v : neighbors[i]) {
-      is_matched[v] = true;
-      matching_order.push_back(v);
-      partial_embedding_idx[v] = matching_order.size() - 1;
-    }
-  }
-  for (size_t i = 0; i < query_num_vertices; ++i) {
-    is_matched[i] = false;
-  }
-}
-
-/**
- * @brief Is called recursively, randomly searcing for a partial embedding.
- *        Returns true if an embedding is found.
- */
-bool Backtrack::CheckRandomEmbedding() {
-  if (++embedding_check_count >= EM_RAND_LIMIT) return false;
-  bool ret = false;
-  Vertex v, u = matching_order[partial_embedding.size()];
-  v = cs->GetCandidate(u, rand() % cs->GetCandidateSize(u));
-  if (isValid(v)) {
-    is_matched[u] = is_embedded[v] = true;
-    partial_embedding.push_back(v);
-    if (partial_embedding.size() == query->GetNumVertices()) {
-      ret = true;
-      printf("WERE SAVED\n");
-    }
-    else
-      ret = CheckRandomEmbedding();
-    partial_embedding.pop_back();
-    is_matched[u] = is_embedded[v] = false;
-  }
-  return ret;
-}
-
 /**
  * @brief Builds a matching order of the query graph.
  */
@@ -149,53 +93,28 @@ void Backtrack::BuildMatchingOrder() {
   matching_order.push_back(min_idx);
   partial_embedding_idx[min_idx] = 0;
 
-  /*
-   * Version 3
-   */
-  for (int i = 0; i < MO_RAND_LIMIT; ++i) {
-    embedding_check_count = 0;
-    GenerateRandomOrder();
-    if(CheckRandomEmbedding()) break;
+  for (size_t i = 0; matching_order.size() < query_num_vertices;) {
+    size_t curr_idx = matching_order[i];
+    min_val = (float)data->GetNumVertices(); // Initialize min_val with a sufficiently large value
+    match_found = false;
+  
+    for (size_t u = query->GetNeighborStartOffset(curr_idx); u < query->GetNeighborEndOffset(curr_idx); ++u) {
+      Vertex v = query->GetNeighbor(u);
+      curr_val = MIN(min_val, (float)cs->GetCandidateSize(v) / query->GetDegree(v));
+      if (curr_val < min_val && !is_matched[v]) {
+        match_found = true;
+        min_val = curr_val;
+        min_idx = v;
+      }
+    }
+  
+    if (match_found) {
+      is_matched[min_idx] = true;
+      matching_order.push_back(min_idx);
+      partial_embedding_idx[min_idx] = matching_order.size() - 1;
+    }
+    else i++;
   }
-  if (embedding_check_count >= EM_RAND_LIMIT) printf("WERE FUCKED\n");
-  /*
-   * Version 2
-   */
-  // for (size_t i = 0; matching_order.size() < query_num_vertices;) {
-  //   size_t curr_idx = matching_order[i];
-  //   min_val = (float)data->GetNumVertices(); // Initialize min_val with a sufficiently large value
-  //   match_found = false;
-  // 
-  //   for (size_t u = query->GetNeighborStartOffset(curr_idx); u < query->GetNeighborEndOffset(curr_idx); ++u) {
-  //     Vertex v = query->GetNeighbor(u);
-  //     curr_val = MIN(min_val, (float)cs->GetCandidateSize(v) / query->GetDegree(v));
-  //     if (curr_val < min_val && !is_matched[v]) {
-  //       match_found = true;
-  //       min_val = curr_val;
-  //       min_idx = v;
-  //     }
-  //   }
-  // 
-  //   if (match_found) {
-  //     is_matched[min_idx] = true;
-  //     matching_order.push_back(min_idx);
-  //     partial_embedding_idx[min_idx] = matching_order.size() - 1;
-  //   }
-  //   else i++;
-  // }
-
-  /*
-   *  Version 1
-   */
-  // for (size_t i = 0; i < query_num_vertices; ++i) {
-  //   for (size_t u = 0; u < query_num_vertices; ++u) {
-  //     if(!is_matched[u] && query->IsNeighbor(matching_order[i], u)) {
-  //       is_matched[u] = true;
-  //       matching_order.push_back(u);
-  //       partial_embedding_idx[u] = matching_order.size() - 1;
-  //     }
-  //   }
-  // }
 }
 
 /**
@@ -204,9 +123,14 @@ void Backtrack::BuildMatchingOrder() {
  */
 void Backtrack::CheckCandidateSpace() {
   Vertex v, u = matching_order[partial_embedding.size()];
-
+  std::vector<std::pair<size_t, size_t>> candidate_entry;
   for (size_t i = 0; i < cs->GetCandidateSize(u); i++) {
     v = cs->GetCandidate(u, i);
+    candidate_entry.push_back(std::make_pair(data->GetNeighborEndOffset(v)-data->GetNeighborStartOffset(v)+1, i));
+  }
+  std::sort(candidate_entry.begin(), candidate_entry.end());
+  for (std::pair<size_t, size_t> i: candidate_entry) {
+    v = cs->GetCandidate(u, i.second);
     if (isValid(v)) {
       is_matched[u] = is_embedded[v] = true;
       partial_embedding.push_back(v);

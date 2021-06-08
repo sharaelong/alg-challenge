@@ -8,8 +8,7 @@
 
 #define MAX(num1, num2)   (num1)>(num2)?(num1):(num2)
 #define MIN(num1, num2)   (num1)<(num2)?(num1):(num2)
-#define MO_RAND_LIMIT  10
-#define EM_RAND_LIMIT  1000
+#define MO_RAND_LIMIT  10000
 #include "candidate_set.h"
 #include "common.h"
 #include "graph.h"
@@ -21,10 +20,8 @@ class Backtrack {
     explicit Backtrack(const Graph *_data, const Graph *_query, const CandidateSet *_cs);
 
     void PrintEmbedding();
-    void GenerateRandomOrder();
     void BuildMatchingOrder();
     bool isValid(Vertex v);
-    bool CheckRandomEmbedding();
     void CheckCandidateSpace();
     void PrintAllMatches();
 
