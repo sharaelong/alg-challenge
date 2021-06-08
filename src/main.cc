@@ -238,7 +238,7 @@ struct CandidateSet {
 
         for (int i=0; i<cs.size(); ++i) {
             stable_sort(cs[i].begin(), cs[i].end(), [&](const CSNode& a, const CSNode& b) {
-                return (multi[a.id] / 2) < (multi[b.id] / 2);
+                return (multi[a.id] / 3) < (multi[b.id] / 3);
             });
             
             // fprintf(stderr, "%d: ", cs[i].size());
