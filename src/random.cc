@@ -487,9 +487,6 @@ int main(int argc, char** argv) {
     string candidate_set_file_name = argv[3];
 
     Backtrack backtrack(data_file_name, query_file_name, candidate_set_file_name);
-    while (!backtrack.running) {
-        backtrack.init();
-        backtrack.TraverseCandidateSet();
-        fprintf(stderr, "hey\n");
-    }
+    backtrack.init();
+    backtrack.TraverseCandidateSet();
 }

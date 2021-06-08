@@ -93,21 +93,28 @@ struct CandidateSet {
     vector<vector<int> > cs;
     vector<vector<int> > adj; // It only stores adjacent information of adjacent vertex in query graph
 
+    vector<vector<int> > visit_cnt;
+
     CandidateSet() {}
-    CandidateSet(const string& filename, const Graph& data, const Graph& query) {
+    CandidateSet(const string& filename, const Graph& graph, const Graph& query) {
         FILE* fp = freopen(filename.c_str(), "r", stdin);
         char type;
         scanf("%c %d\n", &type, &V);
 
-        vector<int> cand_included;
         cs.resize(V);
+        visit_cnt.resize(V);
+        
+        vector<int> cand_included;
         for (int i=0; i<V; ++i) {
-            int query_vertex_id, size, data_vertex_id;
+            int query_vertex_id, size, graph_vertex_id;
             scanf("%c %d %d ", &type, &query_vertex_id, &size);
+            
+            visit_cnt[i].resize(size, 0);
+            
             for (int j=0; j<size; ++j) {
-                scanf("%d ", &data_vertex_id);
-                cs[query_vertex_id].push_back(data_vertex_id);
-                cand_included.push_back(data_vertex_id);
+                scanf("%d ", &graph_vertex_id);
+                cs[query_vertex_id].push_back(graph_vertex_id);
+                cand_included.push_back(graph_vertex_id);
             }
         }
         fclose(fp);
@@ -117,7 +124,7 @@ struct CandidateSet {
         cand_included.erase(unique(cand_included.begin(), cand_included.end()), cand_included.end());
         cs_V = cand_included.size();
 
-        vector<int> mapping(data.V);
+        vector<int> mapping(graph.V);
         for (int i=0; i<cand_included.size(); ++i) {
             mapping[cand_included[i]] = i;
         }
@@ -129,7 +136,7 @@ struct CandidateSet {
             int v = query.edges[k].second;
             for (int i=0; i<cs[u].size(); ++i) {
                 for (int j=0; j<cs[v].size(); ++j) {
-                    if (data.is_neighbor(cs[u][i], cs[v][j])) {
+                    if (graph.is_neighbor(cs[u][i], cs[v][j])) {
                         adj[mapping[cs[u][i]]].push_back(mapping[cs[v][j]]);
                         adj[mapping[cs[v][j]]].push_back(mapping[cs[u][i]]);
                     }
@@ -149,6 +156,13 @@ struct CandidateSet {
             }
         }
 
+        random_device rd;
+        mt19937 g(rd());
+        // randomly shuffle candidate set for preprocessing
+        for (int i=0; i<V; ++i) {
+            shuffle(cs[i].begin(), cs[i].end(), g);
+        }
+
         // fprintf(stderr, "Candidate set entered\n");
     }
 
@@ -156,34 +170,90 @@ struct CandidateSet {
         vector<int>::iterator it = lower_bound(adj[u].begin(), adj[u].end(), v);
         return (*it == v);
     }
+
+    void preprocess(const Graph& query, vector<int>& embed_order) {
+        vector<int> indegree(V);
+        queue<int> q;
+        for (int i=0; i<V; ++i) {
+            indegree[i] = query.next[i].size();
+            if (indegree[i] == 0) { q.push(i); }
+        }
+        
+        while (!q.empty()) {
+            int here = q.front();
+            q.pop();
+            embed_order.push_back(here);
+            for (int i=0; i<query.prev[here].size(); ++i) {
+                int there = query.prev[here][i];
+                if (--indegree[there] == 0) {
+                    q.push(there);
+                }
+            }
+        }
+
+        assert(embed_order.size() == V);
+    }
+
+    void sorting() {
+        for (int i=0; i<V; ++i) {
+            vector<pair<int, int> > cs_copy(cs[i].size());
+            for (int j=0; j<cs[i].size(); ++j) {
+                cs_copy[j] = make_pair(cs[i][j], visit_cnt[i][j]);
+            }
+            sort(cs_copy.begin(), cs_copy.end(), [](const pair<int, int>& a, const pair<int, int>& b) {
+                return a.second > b.second;
+            });
+            for (int j=0; j<cs[i].size(); ++j) {
+                fprintf(stderr, "%d ", cs_copy[j].second);
+                cs[i][j] = cs_copy[j].first;
+            }
+            fprintf(stderr, "\n");
+        }
+    }
 };
 
-Graph data, query;
+Graph graph, query;
 CandidateSet candidate_set;
 
 vector<int> embedding;
 vector<int> indegree;
-set<int> extendable_id;
 vector<bool> data_used;
 
+set<int> extendable_id;
+int reach_cnt = 0;
+vector<int> embed_order;
+
 // check current embedded vertex has edges to "future" vertex here with here_id
-bool is_embedding_valid(int here_id, int here) {
-    for (int i=0; i<query.prev[here_id].size(); ++i) {
-        int prev_id = query.prev[here_id][i];
-        assert(embedding[prev_id] != -1);
-        if (!candidate_set.is_neighbor(here, embedding[prev_id])) {
-            return false;
+bool is_embedding_valid(int here_id, int here, bool search) {
+    if (search) {
+        for (int i=0; i<query.prev[here_id].size(); ++i) {
+            int prev_id = query.prev[here_id][i];
+            assert(embedding[prev_id] != -1);
+            if (!candidate_set.is_neighbor(here, embedding[prev_id])) {
+                return false;
+            }
         }
+        return true;
+    } else {
+        for (int i=0; i<query.next[here_id].size(); ++i) {
+            int next_id = query.next[here_id][i];
+            assert(embedding[next_id] != -1);
+            if (!candidate_set.is_neighbor(here, embedding[next_id])) {
+                return false;
+            }
+        }
+        return true;
     }
-    return true;
 }
 
-void TraverseCandidateSet(int embed_size) {
+void TraverseCandidateSet(int embed_size, bool search) {
     if (embed_size == query.V) {
+        if (!search) { return; }
+        
         // // Validation
         // for (int i=0; i<query.V; ++i) {
         //     // Hmm?
-        //     assert(data.label[embedding[i]] == query.label[i]);
+        //     assert(graph.label[embedding[i]] == query.label[i]);
         // }
         // for (int i=0; i<query.edges.size(); ++i) {
         //     int u_id = query.edges[i].first;
@@ -200,26 +270,34 @@ void TraverseCandidateSet(int embed_size) {
         return;
     }
 
-    int here_id = *extendable_id.begin();
-    // printf("enter id %d at depth %d\n", here_id, embed_size);
-    extendable_id.erase(here_id);
+    int here_id;
+    if (search) {
+        here_id = *extendable_id.begin();
+        // printf("enter id %d at depth %d\n", here_id, embed_size);
+        extendable_id.erase(here_id);
 
-    for (int j=0; j<query.next[here_id].size(); ++j) {
-        int next_id = query.next[here_id][j];
-        if (--indegree[next_id] == 0) {
-            extendable_id.insert(next_id);
+        for (int j=0; j<query.next[here_id].size(); ++j) {
+            int next_id = query.next[here_id][j];
+            if (--indegree[next_id] == 0) {
+                extendable_id.insert(next_id);
+            }
         }
+    } else {
+        if (++reach_cnt > (1 << 20)) { return; }
+        here_id = embed_order[embed_size];
     }
     
     for (int i=0; i<candidate_set.cs[here_id].size(); ++i) {
         int here = candidate_set.cs[here_id][i];
         if (data_used[here]) { continue; }
-        if (is_embedding_valid(here_id, here)) {
+        if (is_embedding_valid(here_id, here, search)) {
+            if (!search) { ++candidate_set.visit_cnt[here_id][i]; }
+            
             data_used[here] = true;
             embedding[here_id] = here;
             ++embed_size;
         
-            TraverseCandidateSet(embed_size);
+            TraverseCandidateSet(embed_size, search);
             
             data_used[here] = false;
             embedding[here_id] = -1;
@@ -227,14 +305,16 @@ void TraverseCandidateSet(int embed_size) {
         }
     }
 
-    for (int j=0; j<query.next[here_id].size(); ++j) {
-        int next_id = query.next[here_id][j];
-        if (indegree[next_id]++ == 0) {
-            extendable_id.erase(next_id);
+    if (search) {
+        for (int j=0; j<query.next[here_id].size(); ++j) {
+            int next_id = query.next[here_id][j];
+            if (indegree[next_id]++ == 0) {
+                extendable_id.erase(next_id);
+            }
         }
-    }
 
-    extendable_id.insert(here_id);
+        extendable_id.insert(here_id);
+    }
 }
 
 int main(int argc, char** argv) {
@@ -249,12 +329,24 @@ int main(int argc, char** argv) {
 
     // fprintf(stderr, "enter\n");
 
-    data = Graph(data_file_name);
+    graph = Graph(data_file_name);
     query = Graph(query_file_name, true);
-    candidate_set = CandidateSet(candidate_set_file_name, data, query);
+    candidate_set = CandidateSet(candidate_set_file_name, graph, query);
 
-    // code here...
+    candidate_set.preprocess(query, embed_order);
+    // fprintf(stderr, "\n");
+    // for (int i=0; i<embed_order.size(); ++i) {
+    //     fprintf(stderr, "%d ", embed_order[i]);
+    // }
+    // fprintf(stderr, "\n");
+
+    embedding.resize(query.V, -1);
     data_used.resize(candidate_set.cs_V, false);
+    TraverseCandidateSet(0, false);
+
+    fprintf(stderr, "\nreach_cnt: %d\n", reach_cnt);
+    candidate_set.sorting();
+    
     embedding.resize(query.V, -1);
     indegree.resize(query.V);
     for (int i=0; i<indegree.size(); ++i) {
@@ -263,7 +355,6 @@ int main(int argc, char** argv) {
             extendable_id.insert(i);
         }
     }
-
-    // fprintf(stderr, "%s", "Process start.\n");
-    TraverseCandidateSet(0);
+    data_used.resize(candidate_set.cs_V, false);
+    TraverseCandidateSet(0, true);
 }
