@@ -491,6 +491,8 @@ int main(int argc, char** argv) {
     bitset<500> terminator;
     terminator.reset();
     terminator.set(499, true);
+    std::cout << "t " << backtrack.query.V << "\n";
+
     while (true) {
         backtrack.init();
         if (backtrack.TraverseCandidateSet() != terminator) {
