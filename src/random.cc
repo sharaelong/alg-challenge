@@ -358,6 +358,7 @@ struct Backtrack {
         printf("\n");
 
         if (++matching_cnt >= 100000) {
+            
             exit(0);
         }
     }
@@ -487,6 +488,13 @@ int main(int argc, char** argv) {
     string candidate_set_file_name = argv[3];
 
     Backtrack backtrack(data_file_name, query_file_name, candidate_set_file_name);
-    backtrack.init();
-    backtrack.TraverseCandidateSet();
+    bitset<500> terminator;
+    terminator.reset();
+    terminator.set(499, true);
+    while (true) {
+        backtrack.init();
+        if (backtrack.TraverseCandidateSet() != terminator) {
+            break;
+        }
+    }
 }
