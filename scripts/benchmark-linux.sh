@@ -7,7 +7,8 @@ for data in "${datas[@]}"
 do
     for kind in "${suffix[@]}"
     do
-        printf "$data$kind: "
-        printf "$((`timeout $1 ../src/new "../data/${data}.igraph" "../query/${data}${kind}.igraph" "../candidate_set/${data}${kind}.cs" | wc -l`))\n"
+        printf "$data$kind \n"
+        printf "$((`timeout 60 ../program "../data/${data}.igraph" "../query/${data}${kind}.igraph" "../candidate_set/${data}${kind}.cs" | wc -l` - 1))\n"
+        echo "---------------"
     done
 done
