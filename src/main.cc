@@ -45,21 +45,6 @@ struct SegmentTree {
     }
 };
 
-// struct ErrorInfo {
-//     bool is_error;
-//     vector<bool> error;
-//     ErrorInfo() { is_error = false; }
-//     ErrorInfo(int size) {
-//         is_error = false;
-//         error.resize(size, 0);
-//     }
-
-//     void add(int pos) {
-//         error[pos] = true;
-//         is_error = true;
-//     }
-// };
-
 struct Graph {
     int V;
     vector<vector<int> > adj;
@@ -136,8 +121,6 @@ struct Graph {
                 }
             }
         }
-
-        // fprintf(stderr, "Graph entered\n");
     }
 
     bool is_neighbor(int u, int v) const {
@@ -186,8 +169,6 @@ struct CandidateSet {
             }
         }
         fclose(fp);
-
-        // fprintf(stderr, "Candidate set entered\n");
     }
 
     void preprocess(const Graph& graph, const Graph& query) {
@@ -240,19 +221,7 @@ struct CandidateSet {
             stable_sort(cs[i].begin(), cs[i].end(), [&](const CSNode& a, const CSNode& b) {
                 return (multi[a.id] / 2) < (multi[b.id] / 2);
             });
-            
-            // fprintf(stderr, "%d: ", cs[i].size());
-            // for (int j=0; j<cs[i].size(); ++j) {
-            //     fprintf(stderr, "(%d %d), ", cs[i][j].id, multi[cs[i][j].id]);
-            // }
-            // fprintf(stderr, "\n");
         }
-
-        // // weight array
-        // weight.resize(V);
-        // for (int i=0; i<V; ++i) {
-        //     weight[i].resize(cs[i].size(), 1);
-        // }
 
         vector<int> outdegree(V);
         queue<int> q;
@@ -291,16 +260,6 @@ struct CandidateSet {
                 cs[here_id][i].weight = (min_weight == INF) ? 1 : min_weight;
             }
         }
-
-        // for (int i=0; i<cs.size(); ++i) {
-        //     fprintf(stderr, "%d: ", i);
-        //     for (int j=0; j<cs[i].size(); ++j) {
-        //         fprintf(stderr, "[%d %d] ", cs[i][j].id, cs[i][j].weight);
-        //     }
-        //     fprintf(stderr, "\n");
-        // }
-
-        // fprintf(stderr, "Preprocess of candidate set is finished\n");
     }
 };
 
@@ -437,7 +396,6 @@ struct Backtrack {
 
         bitset<500> error_here;
         error_here.reset();
-        // fprintf(stderr, "(%d %d)\n", size, here_id);
         for (int i=0; i<candidate_set.cs[here_id].size(); ++i) {
             CSNode curr = candidate_set.cs[here_id][i];
             if (visited[curr.id]) {
